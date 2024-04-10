@@ -18,57 +18,40 @@ def HFLang : Language.{0, 0} where
 
 abbrev HFLang.emptySetSymbol : HFLang.Functions 0 := PUnit.unit
 
+local notation "∅'" => HFLang.emptySetSymbol
+
 abbrev HFLang.enlargementSymbol : HFLang.Functions 2 := PUnit.unit
+
+local notation "◁'" => HFLang.enlargementSymbol
 
 abbrev HFLang.membershipSymbol : HFLang.Relations 2 := PUnit.unit
 
-def HFLang.emptySetTerm : HFLang.Term Empty :=
-.func HFLang.emptySetSymbol (fun x => x.elim0)
+local notation "∈'" => HFLang.membershipSymbol
 
 /--
 HF1: ∀ z, z = ∅ ↔ ∀ x, ¬(x ∈ z)
 -/
 def HFAxiom1 : HFLang.Sentence :=
-.all <| .iff
-  (.equal
-    (.var (.inr 0)) -- z
-    (.func HFLang.emptySetSymbol (fun x => x.elim0))) -- ∅
-  (.all <| .not <|
-    .rel HFLang.membershipSymbol ![.var (.inr 1), .var (.inr 0)]) -- x ∈ z
+∀' (&0 =' (.func ∅' Fin.elim0)) ⇔ ∀' ∼(.rel ∈' ![&1, &0])
 
 /--
 ∀ z, ∀ x, ∀ y, z = enlarge x y ↔ ∀ u, u ∈ z ↔ u ∈ x ∨ u = y
 -/
 def HFAxiom2 : HFLang.Sentence :=
-.all <| -- for all z
-.all <| -- for all x
-.all <| -- for all y
-.iff
-  (.equal
-    (.var <| .inr 0) -- z
-    (.func HFLang.enlargementSymbol ![.var (.inr 1), .var (.inr 2)])) -- enlarge x y
-  (.all <| -- for all u
-    .iff
-      (.rel HFLang.membershipSymbol ![.var (.inr 3), .var (.inr 0)]) -- u ∈ z
-      (.rel HFLang.membershipSymbol ![.var (.inr 3), .var (.inr 1)] ⊔
-       .rel HFLang.membershipSymbol ![.var (.inr 3), .var (.inr 1)])) -- u ∈ x ∨ u = y
+∀' ∀' ∀'
+  (&0 =' (.func ◁' ![&1, &2])) ⇔
+  ∀' (.rel ∈' ![&3, &0] ⇔ (.rel ∈' ![&3, &1] ⊔ .rel ∈' ![&3, &2]))
 
 /--
 `α` is a formula with one free variable.
 
 HF3: α(∅) ∧ ∀ x y, α(x) → α(y) → α(enlarge x y)
-
 -/
 def HFAxiom3 (α : HFLang.Formula (Fin 1)) : HFLang.Sentence :=
-α.subst ![.func HFLang.emptySetSymbol Fin.elim0] ⊓ -- α(∅)
-(.all <| -- for all x
-.all <| -- for all y
-.imp
-  (α.subst ![.var (0 : Fin 1)] |>.relabel ![.inr 0]) -- α(x)
-  (.imp
-    (α.subst ![.var (0 : Fin 1)] |>.relabel ![.inr 1]) -- α(y)
-    (α.subst ![ .func HFLang.enlargementSymbol
-      ![.var (0 : Fin 2), .var (1 : Fin 2)] ] |>.relabel .inr))) -- α(enlarge x y)
+α.subst ![.func ∅' Fin.elim0] ⊓
+∀' ∀'
+((α.subst ![.var 0] |>.relabel ![.inr 0]) ⊓ (α.subst ![.var 1] |>.relabel ![.inr 1]) ⟹
+  (α.subst ![ .func ◁' ![.var 0, .var 1] ] |>.relabel .inr))
 
 def HFSetTheory : HFLang.Theory :=
 {HFAxiom1, HFAxiom2} ∪ ⋃ (α : HFLang.Formula (Fin 1)), {HFAxiom3 α}
